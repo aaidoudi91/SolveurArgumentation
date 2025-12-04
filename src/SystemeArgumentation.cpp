@@ -1,9 +1,8 @@
-/* Fichier : SystemeArgumentation.cpp
- * Description : Implémentation de la classe SystemeArgumentation
- *               Représente un système d'argumentation abstrait F = ⟨A, R⟩ */
+/* SystemeArgumentation.cpp
+ * Implémentation de la classe SystemeArgumentation représentant un système d'argumentation abstrait F = ⟨A, R⟩ */
 
 #include "SystemeArgumentation.hpp"
-#include <iostream>  // Pour std::cout (affichage)
+#include <iostream>  // pour std::cout (affichage)
 
 
 
@@ -18,12 +17,12 @@ bool SystemeArgumentation::ajouterArgument(const std::string& arg) {
     // si l'argument existait déjà, std::set refuse l'insertion (pas de doublons)
     bool aEteAjoute = resultat.second;
 
-    // si l'argument est nouveau, on l'initialise dans nos dictionnaires
+    // Si l'argument est nouveau, on l'initialise dans nos dictionnaires
     // ce qui crée des entrées vides pour cet argument
     if (aEteAjoute) {
         // std::unordered_map::operator[] crée automatiquement une entrée
         // si la clé n'existe pas, avec une valeur par défaut (ici : set vide)
-        // C'est différent du .at() qui lancerait une exception si clé absente
+        // différent du .at() qui lancerait une exception si clé absente
         attaquants_[arg];  // Initialise à std::set<std::string>{}
         attaques_de_[arg];  // Initialise à std::set<std::string>{}
     }
@@ -33,7 +32,7 @@ bool SystemeArgumentation::ajouterArgument(const std::string& arg) {
 // Ajoute une attaque (source -> cible) au système
 bool SystemeArgumentation::ajouterAttaque(const std::string& source,
                                           const std::string& cible) {
-    // valider les préconditions pour eviter d'avoir des attaques entre arguments inexistants
+    // Valider les préconditions pour eviter d'avoir des attaques entre arguments inexistants
     if (!argumentExiste(source) || !argumentExiste(cible)) {
         // si l'un des arguments n'existe pas, on refuse l'ajout
         return false;
@@ -44,7 +43,7 @@ bool SystemeArgumentation::ajouterAttaque(const std::string& source,
     auto resultat = attaques_.insert({source, cible});
     bool aEteAjoutee = resultat.second;
 
-    // si l'attaque est nouvelle, on met à jour nos structures d'accès rapide
+    // Si l'attaque est nouvelle, on met à jour nos structures d'accès rapide
     if (aEteAjoutee) {
         // "cible" a maintenant "source" comme attaquant
         attaquants_[cible].insert(source);
@@ -76,7 +75,7 @@ std::set<std::string> SystemeArgumentation::getAttaquants(
     // - si la clé n'existe pas : itérateur == map.end()
     auto it = attaquants_.find(arg);
 
-    // si l'argument existe dans le dictionnaire
+    // Si l'argument existe dans le dictionnaire
     if (it != attaquants_.end()) {
         // un itérateur de map/unordered_map pointe vers une std::pair :
         // - it->first  : la clé (ici : le nom de l'argument)
@@ -84,16 +83,15 @@ std::set<std::string> SystemeArgumentation::getAttaquants(
         return it->second;  // retourne le set des attaquants
     }
 
-    // si l'argument n'existe pas ou n'a pas d'attaquants
-    // on retourne un ensemble vide
-    return std::set<std::string>{};  // Ensemble vide
+    // Si l'argument n'existe pas ou n'a pas d'attaquants alors retourne un ensemble vide
+    return std::set<std::string>{};  // ensemble vide
 }
 
 // Retourne les arguments attaqués par un argument donné
 std::set<std::string> SystemeArgumentation::getAttaquesDe(
     const std::string& arg) const {
 
-    // même logique que getAttaquants, mais avec l'autre dictionnaire
+    // Même logique que getAttaquants, mais avec l'autre dictionnaire
     auto it = attaques_de_.find(arg);
     if (it != attaques_de_.end()) {
         return it->second;
@@ -137,8 +135,7 @@ void SystemeArgumentation::vider() {
     attaques_.clear();
     attaquants_.clear();
     attaques_de_.clear();
-    // après clear(), les conteneurs sont vides mais toujours utilisables
-    // on peut immédiatement réutiliser l'objet SystemeArgumentation
+    // après clear(), les conteneurs sont vides, mais toujours utilisables
 }
 
 
@@ -146,7 +143,7 @@ void SystemeArgumentation::vider() {
 void SystemeArgumentation::afficher() const {
     std::cout << "Système d'Argumentation : " << std::endl;
 
-    // affichage des arguments
+    // Affichage des arguments
     std::cout << "\nArguments (" << arguments_.size() << ") :" << std::endl;
     // "const auto&" signifie :
     // - auto : le compilateur déduit le type automatiquement
@@ -156,7 +153,7 @@ void SystemeArgumentation::afficher() const {
         std::cout << "  - " << arg << std::endl;
     }
 
-    // affichage des attaques
+    // Affichage des attaques
     std::cout << "\nAttaques (" << attaques_.size() << ") :" << std::endl;
     for (const auto& attaque : attaques_) {
         // attaque est un std::pair<std::string, std::string>
@@ -165,7 +162,7 @@ void SystemeArgumentation::afficher() const {
                   << " → " << attaque.second << std::endl;
     }
 
-    // affichage des attaquants pour chaque argument
+    // Affichage des attaquants pour chaque argument
     std::cout << "\nDétail des attaquants :" << std::endl;
     for (const auto& arg : arguments_) {
         std::set<std::string> attaquants = getAttaquants(arg);
