@@ -1,91 +1,67 @@
 /* SystemeArgumentation.hpp
- * Définit la structure d'un système d'argumentation abstrait
- * Un système d'argumentation est un couple F = <A, R> où :
- *   - A est un ensemble d'arguments abstraits
- *   - R ⊆ A × A est une relation d'attaque entre arguments */
+ * Définit la classe représentant un système d'argumentation abstrait F = <A, R> sous forme de graphe orienté. */
 
 #ifndef SYSTEME_ARGUMENTATION_HPP
 #define SYSTEME_ARGUMENTATION_HPP
 
-
 #include <string>  // std::string
-#include <set>  // std::set - ensemble ordonné sans doublons (complexité O(log n) pour insertion/recherche)
-#include <unordered_map>    // std::unordered_map - dictionnaire (hash map)
-#include <utility>          // std::pair - paire de valeurs
-
+#include <vector>  // std::vector (tableau dynamique)
+#include <unordered_map>  // std::unordered_map (table de hachage)
+#include <utility>  // std::pair
+#include <iostream>  // std::cout, std::ostream
 
 
 class SystemeArgumentation {
 private:
-    // Ensemble A des arguments
-    // std::set garantit l'unicité des éléments et l'ordre lexicographique
-    // pas vector car on vérifie souvent "a ∈ A" (O(log n) contre O(n))
-    std::set<std::string> arguments_;
-
-    // Ensemble R des attaques, stocké comme ensemble de paires
-    // std::pair<X,Y> est un tuple de 2 éléments de types X et Y
-    // (a, b) signifie "a attaque b"
-    std::set<std::pair<std::string, std::string>> attaques_;
-
-    // Dictionnaire : pour chaque argument, qui l'attaque ; permettant un accès en O(1)
-    // clé = argument cible, valeur = ensemble de ses attaquants
-    std::unordered_map<std::string, std::set<std::string>> attaquants_;
-
-    // Dictionnaire inverse : pour chaque argument, qui attaque-t-il
-    // clé = argument source, valeur = ensemble des arguments qu'il attaque
-    std::unordered_map<std::string, std::set<std::string>> attaques_de_;
+    // Associe chaque nom d'argument à un identifiant unique entier (pour accès en O(1))
+    std::unordered_map<std::string, int> nomVersId_;
+    // Tableau permettant de retrouver le nom d'un argument à partir de son identifiant entier
+    std::vector<std::string> idVersNom_;
+    // Graphe des attaques : adjacence_[i] contient la liste des cibles attaquées par l'argument i
+    std::vector<std::vector<int>> adjacence_;
+    // Graphe inverse : parents_[i] contient la liste des attaquants de l'argument i (optimisation pour la défense)
+    std::vector<std::vector<int>> parents_;
 
 public:
-    // Constructeur par défaut créant un système d'argumentation vide
-    // = default permet de générer le constructeur standard
-    SystemeArgumentation() = default;
+    SystemeArgumentation() = default;  // Constructeur par défaut
+    ~SystemeArgumentation() = default;  // Destructeur par défaut
 
-    // Destructeur appelé automatiquement quand l'objet est détruit
-    // = default car pas de ressources à libérer manuellement
-    ~SystemeArgumentation() = default;
-    
-    // Ajoute un argument au système
-    // référence & évite de copier le string et const garantit qu'on ne modifie pas l'original
-    // retourne true si ajouté, false si déjà existant
+    // Ajoute un nouvel argument au système et lui assigne un identifiant unique
+    // Retourne true si l'argument a été ajouté, false s'il existait déjà
     bool ajouterArgument(const std::string& arg);
-
-    // Ajoute une attaque (source -> cible) au système
-    // retourne true si ajoutée, false si déjà existante ou arguments invalides
+    // Ajoute une relation d'attaque entre deux arguments existants
+    // Retourne true si l'ajout est réussi, false si les arguments n'existent pas ou l'attaque existe déjà
     bool ajouterAttaque(const std::string& source, const std::string& cible);
 
-    // Retourne l'ensemble des arguments
-    // retour par référence constante pour éviter une copie coûteuse
-    const std::set<std::string>& getArguments() const;
+    // Retourne le nombre total d'arguments
+    size_t getNbArguments() const;
+    // Retourne l'identifiant entier associé à un nom d'argument (lance une exception si introuvable)
+    int getId(const std::string& nom) const;
+    // Retourne le nom de l'argument correspondant à l'identifiant donné
+    const std::string& getNom(int id) const;
+    // Retourne une référence constante vers le graphe d'adjacence (pour les algorithmes)
+    const std::vector<std::vector<int>>& getAdjacence() const;
+    // Retourne une référence constante vers le graphe des parents (pour vérifier la défense)
+    const std::vector<std::vector<int>>& getParents() const;
 
-    // Retourne l'ensemble des attaques
-    const std::set<std::pair<std::string, std::string>>& getAttaques() const;
-
-    // Retourne les attaquants d'un argument donné
-    // si l'argument n'existe pas ou n'a pas d'attaquants, retourne ensemble vide
-    std::set<std::string> getAttaquants(const std::string& arg) const;
-
-    // Retourne les arguments attaqués par un argument donné
-    std::set<std::string> getAttaquesDe(const std::string& arg) const;
-
-    // Retourne le nombre d'arguments
-    // size_t est un type entier non-signé, standard pour les tailles
-    size_t getNombreArguments() const;
-
-    // Retourne le nombre d'attaques
-    size_t getNombreAttaques() const;
-    
-    // Vérifie si un argument existe dans le système
+    // Vérifie si un argument est présent dans le système
     bool argumentExiste(const std::string& arg) const;
-
-    // Vérifie si une attaque existe
+    // Vérifie si une attaque existe entre deux arguments donnés par leurs noms
     bool attaqueExiste(const std::string& source, const std::string& cible) const;
-    
-    // Vide le système (supprime tous les arguments et attaques)
+    // Vérifie si une attaque existe entre deux arguments donnés par leurs identifiants
+    bool attaqueExiste(int idSource, int idCible) const;
+    // Retourne la liste complète des noms des arguments
+    const std::vector<std::string>& getArguments() const;
+    // Construit et retourne la liste de toutes les attaques sous forme de paires de noms
+    std::vector<std::pair<std::string, std::string>> getAttaques() const;
+    // Retourne la liste des noms des arguments qui attaquent l'argument donné
+    std::vector<std::string> getAttaquants(const std::string& arg) const;
+    // Retourne la liste des noms des arguments attaqués par l'argument donné
+    std::vector<std::string> getCibles(const std::string& arg) const;
+    // Réinitialise le système en supprimant tous les arguments et attaques
     void vider();
-
-    // Affiche le système (pour debug)
+    // Affiche le contenu du système (pour débug)
     void afficher() const;
 };
-
 
 #endif // SYSTEME_ARGUMENTATION_HPP
