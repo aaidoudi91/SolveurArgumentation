@@ -1,63 +1,37 @@
 /* Utilitaires.hpp
- * Fonctions utilitaires pour manipuler les ensembles d'arguments et vérifier des propriétés (sans-conflit, etc.) */
+ * Fonctions utilitaires pour manipuler les ensembles d'arguments et vérifier des propriétés */
 
 #ifndef UTILITAIRES_HPP
 #define UTILITAIRES_HPP
 
-
-#include <set>
-#include <string>
+#include <vector>  // std::vector
+#include <string>  // std::string
 #include "SystemeArgumentation.hpp"
 
 
-
-// Utilisation : Utilitaires::estSansConflit(S, sa)
 namespace Utilitaires {
-    using EnsembleArguments = std::set<std::string>;
+    // Alias pour manipuler des ensembles d'arguments sous forme d'identifiants entiers
+    using EnsembleIds = std::vector<int>;
 
-    // Vérifie si un ensemble S est sans conflit dans le système (aucun argument de S n'attaque un autre de S)
-    bool estSansConflit(const EnsembleArguments& S,
-                        const SystemeArgumentation& sa);
+    // Convertit une liste de noms en une liste d'identifiants triée, en ignorant les noms inexistants
+    EnsembleIds convertirNomsEnIds(const std::vector<std::string>& noms, const SystemeArgumentation& sa);
+    // Convertit une liste d'identifiants en une liste de noms pour l'affichage
+    std::vector<std::string> convertirIdsEnNoms(const EnsembleIds& ids, const SystemeArgumentation& sa);
 
-    // Vérifie si un ensemble S défend un argument
-    bool defend(const EnsembleArguments& S,
-                const std::string& arg,
-                const SystemeArgumentation& sa);
+    // Vérifie si un ensemble d'arguments est sans conflit
+    bool estSansConflit(const EnsembleIds& S, const SystemeArgumentation& sa);
+    // Vérifie si un ensemble S défend un argument spécifique contre tous ses attaquants
+    bool defend(const EnsembleIds& S, int cibleId, const SystemeArgumentation& sa);
+    // Vérifie si un ensemble est admissible
+    bool estAdmissible(const EnsembleIds& S, const SystemeArgumentation& sa);
+    // Vérifie si un ensemble attaque tous les arguments qui ne lui appartiennent pas
+    bool attaqueToutExterieur(const EnsembleIds& S, const SystemeArgumentation& sa);
 
-    // Vérifie si un ensemble S est admissible (sans conflit et défend tous ses éléments)
-    bool estAdmissible(const EnsembleArguments& S,
-                       const SystemeArgumentation& sa);
+    // Calcule la fonction caractéristique F(S) : retourne l'ensemble de tous les arguments défendus par S
+    EnsembleIds fonctionCaracteristique(const EnsembleIds& S, const SystemeArgumentation& sa);
 
-    // Vérifie si un ensemble S attaque tous les arguments hors de S
-    // utilisé pour la sémantique stable (S est stable ssi S est sans conflit et attaque tout A\S)
-    bool attaqueTousLesAutres(const EnsembleArguments& S,
-                              const SystemeArgumentation& sa);
-
-
-    // Différence ensembliste (A\B)
-    EnsembleArguments difference(const EnsembleArguments& A,
-                                 const EnsembleArguments& B);
-
-    // Union ensembliste (A ∪ B)
-    EnsembleArguments unionEnsembles(const EnsembleArguments& A,
-                                     const EnsembleArguments& B);
-
-    // Intersection ensembliste (A ∩ B)
-    EnsembleArguments intersection(const EnsembleArguments& A,
-                                   const EnsembleArguments& B);
-
-    // Inclusion ensembliste (A ⊆ B)
-    bool estSousEnsemble(const EnsembleArguments& A,
-                         const EnsembleArguments& B);
-
-    
-    // Retourne l'ensemble des arguments défendus par S
-    EnsembleArguments fonctionCaracteristique(const EnsembleArguments& S,
-                                               const SystemeArgumentation& sa);
-
-
-    // Convertit un ensemble en string pour affichage : "{a, b, c}"
-    std::string ensembleVersString(const EnsembleArguments& S);
+    // Génère une représentation textuelle d'un ensemble d'IDs (ex: "{a, b, c}") pour le débogage.
+    std::string afficher(const EnsembleIds& S, const SystemeArgumentation& sa);
 
 }
 
