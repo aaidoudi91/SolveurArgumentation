@@ -1,204 +1,128 @@
-/* Parseur.cpp
- * Implémentation du parseur de fichiers .apx, lit et valide les fichiers d'argumentation
- * Format supporté :
- *   arg(nom_argument).
- *   att(source,cible). */
+/* Parseur.hpp
+* Module responsable de l'analyse syntaxique des fichiers .apx pour construire le système d'argumentation. */
 
 #include "Parseur.hpp"
-#include <fstream>      // pour std::ifstream (lecture de fichiers)
-#include <sstream>      // pour std::stringstream (parsing de strings)
-#include <algorithm>    // pour std::remove_if, std::all_of
+#include <fstream>  // std::ifstream (lecture de fichiers)
+#include <sstream>  // std::stringstream (parsing de strings)
+#include <algorithm>  // std::remove_if, std::all_of
 
 
-
+// Fonction principale : lecture ligne par ligne et du remplissage du système.
 SystemeArgumentation Parseur::parserFichier(const std::string& cheminFichier) {
-
-    std::ifstream fichier(cheminFichier);  // flux d'entrée pour lire des fichiers (if = input file)
-
-    if (!fichier.is_open()) {  // vérifier si l'ouverture a réussi
+    std::ifstream fichier(cheminFichier); // Ouverture du flux en lecture
+    if (!fichier.is_open()) {
         throw ErreurParsing("Impossible d'ouvrir le fichier : " + cheminFichier);
     }
 
-    SystemeArgumentation systeme;  // le système d'argumentation qu'on va construire
-    std::string ligne; // pour stocker chaque ligne lue
-    size_t numeroLigne = 0;  // compteur de ligne (pour messages d'erreur)
+    SystemeArgumentation systeme;  // Le système d'argumentation qu'on va construire
+    std::string ligne;  // Pour stocker chaque ligne lue
+    size_t numeroLigne = 0;  // Pour indiquer l'emplacement exact de l'erreur
 
-    while (std::getline(fichier, ligne)) { // tant qu'on peut lire une ligne
+    // Lecture séquentielle du fichier
+    while (std::getline(fichier, ligne)) {
         ++numeroLigne;
-        ligne = trim(ligne);  // supprimer les espaces blancs en début et fin
+        ligne = trim(ligne);  // Supprimer les espaces blancs en début et fin
 
-        if (ligne.empty() || ligne[0] == '#') {  // ignorer les lignes vides ou commentaires
-            continue;  // passer à la ligne suivante
+        if (ligne.empty() || ligne[0] == '#') {  // Ignorer les lignes vides ou commentaires
+            continue;
         }
 
         try {
-            if (ligne.substr(0, 4) == "arg(") {  // vérifier si la ligne commence par "arg("
+            if (ligne.substr(0, 4) == "arg(") {  // Vérifier si la ligne commence par "arg("
                 std::string nomArg = parserLigneArgument(ligne);
-                bool ajoutReussi = systeme.ajouterArgument(nomArg);  // ajouter l'argument au système
-                // Si l'argument existait déjà, on ignore
-                (void)ajoutReussi;  // évite un warning "variable non utilisée"
+                (void)systeme.ajouterArgument(nomArg);  // Ajouter l'argument au système (retour booléen est ignoré)
 
             }
-            else if (ligne.substr(0, 4) == "att(") {  // vérifier si la ligne commence par "att("
+            else if (ligne.substr(0, 4) == "att(") {  // Vérifier si la ligne commence par "att("
                 auto [source, cible] = parserLigneAttaque(ligne);
-                bool ajoutReussi = systeme.ajouterAttaque(source, cible);  // ajouter l'attaque au système
-                if (!ajoutReussi) {  // si l'ajout échoue, c'est qu'un argument n'existe pas
-                    throw ErreurParsing(
-                        "Ligne " + std::to_string(numeroLigne) +
-                        " : Attaque invalide (arguments inexistants) : " + ligne
-                    );
+                bool ajoutReussi = systeme.ajouterAttaque(source, cible);  // Ajouter l'attaque au système
+                if (!ajoutReussi) {  // Si l'ajout échoue, c'est qu'un argument n'existe pas
+                    throw ErreurParsing("Ligne " + std::to_string(numeroLigne) +
+                        " : Attaque invalide (arguments inexistants) : " + ligne);
                 }
-
-            } else {
-                throw ErreurParsing(
-                    "Ligne " + std::to_string(numeroLigne) +
-                    " : Format invalide (doit commencer par 'arg(' ou 'att(') : " + ligne
-                );
             }
-
-        } catch (const ErreurParsing& e) {
-            fichier.close();  // fermer le fichier en cas d'erreur
-            throw ErreurParsing(  // relancer l'exception avec contexte supplémentaire
-                "Erreur de parsing dans '" + cheminFichier +
-                "' ligne " + std::to_string(numeroLigne) + " : " + e.what()
-            );
+            else {
+                throw ErreurParsing("Ligne " + std::to_string(numeroLigne) +
+                    " : Format invalide (doit commencer par 'arg(' ou 'att(') : " + ligne);
+            }
+        }
+        catch (const ErreurParsing& e) {
+            fichier.close();  // Fermer le fichier en cas d'erreur
+            throw ErreurParsing("Erreur de parsing dans '" + cheminFichier +
+                "' ligne " + std::to_string(numeroLigne) + " : " + e.what());
         }
     }
 
     fichier.close();
 
-    if (systeme.getNombreArguments() == 0) {  // vérifier qu'on a au moins un argument
-        throw ErreurParsing(
-            "Le fichier '" + cheminFichier +
-            "' ne contient aucun argument valide"
-        );
+    if (systeme.getNbArguments() == 0) {  // Vérifier qu'on a au moins un argument
+        throw ErreurParsing("Le fichier '" + cheminFichier +"' ne contient aucun argument valide");
     }
     return systeme;
 }
 
-
-// Parse une ligne de type "arg(nom)."
+// Analyse une ligne déclarant un argument ("arg(x).") et extrait le nom "x"
 std::string Parseur::parserLigneArgument(const std::string& ligne) {
-    if (ligne.length() < 7) {  // minimum : "arg(a)." = 7 caractères
-        throw ErreurParsing("Ligne trop courte pour un argument : " + ligne);
-    }
-    if (ligne.substr(0, 4) != "arg(") {  // vérifier que ça commence bien par "arg("
-        throw ErreurParsing("L'argument doit commencer par 'arg(' : " + ligne);
-    }
-    if (ligne.substr(ligne.length() - 2) != ").") {  // Vérifier que ça se termine par ")."
-        throw ErreurParsing("L'argument doit se terminer par ').' : " + ligne);
-    }
+    // Vérifications sur la structure attendue
+    if (ligne.length() < 7) throw ErreurParsing("Ligne trop courte : " + ligne);
+    if (ligne.substr(0, 4) != "arg(") throw ErreurParsing("Doit commencer par 'arg('");
+    if (ligne.substr(ligne.length() - 2) != ").") throw ErreurParsing("Doit finir par ').'");
 
-    // Extrait la sous-chaîne entre "arg(" et ")." : 4 (après "arg(")
-    size_t debut = 4;  // Position après "arg("
-    size_t longueur = ligne.length() - 6;  // Tout sauf "arg(" et ")."
-    std::string nom = ligne.substr(debut, longueur);
+    std::string nom = ligne.substr(4, ligne.length() - 6);  // Extrait la sous-chaîne entre parenthèses
 
-    if (nom.empty()) {
-        throw ErreurParsing("Nom d'argument vide : " + ligne);
-    }
-    if (!estNomValide(nom)) {
-        throw ErreurParsing("Nom d'argument invalide : " + nom);
-    }
+    if (nom.empty()) throw ErreurParsing("Nom d'argument vide : " + ligne);
+    if (!estNomValide(nom)) throw ErreurParsing("Nom d'argument invalide : " + nom);
 
     return nom;
 }
 
-// Parse une ligne de type "att(source,cible)."
+// Analyse une ligne déclarant une attaque ("att(x,y).") et extrait la paire {"x", "y"}
 std::pair<std::string, std::string> Parseur::parserLigneAttaque(const std::string& ligne) {
     // Même logique que pour parserLigneArgument() ci-dessus
-    if (ligne.length() < 9) {
-        throw ErreurParsing("Ligne trop courte pour une attaque : " + ligne);
-    }
-    if (ligne.substr(0, 4) != "att(") {
-        throw ErreurParsing("L'attaque doit commencer par 'att(' : " + ligne);
-    }
-    if (ligne.substr(ligne.length() - 2) != ").") {
-        throw ErreurParsing("L'attaque doit se terminer par ').' : " + ligne);
-    }
+    if (ligne.length() < 9) throw ErreurParsing("Ligne trop courte : " + ligne);
+    if (ligne.substr(0, 4) != "att(") throw ErreurParsing("Doit commencer par 'att('");
+    if (ligne.substr(ligne.length() - 2) != ").") throw ErreurParsing("Doit finir par ').'");
 
-    size_t debut = 4;
-    size_t longueur = ligne.length() - 6;
-    std::string contenu = ligne.substr(debut, longueur);
+    std::string contenu = ligne.substr(4, ligne.length() - 6);  // Extrait la sous-chaîne entre parenthèses
 
-    size_t posVirgule = contenu.find(',');  // retourne la position de la première occurrence
+    size_t posVirgule = contenu.find(',');  // Retourne la position de la première occurrence
+    if (posVirgule == std::string::npos) throw ErreurParsing("Virgule manquante : " + ligne);
 
-    if (posVirgule == std::string::npos) {
-        throw ErreurParsing(
-            "Virgule manquante dans l'attaque (format: att(source,cible).) : " + ligne
-        );
-    }
+    std::string source = trim(contenu.substr(0, posVirgule));  // Supprimer les espaces éventuels
+    std::string cible = trim(contenu.substr(posVirgule + 1));
 
-    std::string source = contenu.substr(0, posVirgule);
-    std::string cible = contenu.substr(posVirgule + 1);
-
-    // Supprimer les espaces éventuels
-    source = trim(source);
-    cible = trim(cible);
-
-    if (source.empty()) {
-        throw ErreurParsing("Source de l'attaque vide : " + ligne);
-    }
-    if (cible.empty()) {
-        throw ErreurParsing("Cible de l'attaque vide : " + ligne);
-    }
-    if (!estNomValide(source)) {
-        throw ErreurParsing("Nom de source invalide : " + source);
-    }
-    if (!estNomValide(cible)) {
-        throw ErreurParsing("Nom de cible invalide : " + cible);
-    }
-    /*
-    if (source == cible) {  // ne pas permettre les auto-attaques (optionnel)
-        throw ErreurParsing("Auto-attaque non permise : " + ligne);
-    } */
+    if (source.empty() || cible.empty()) throw ErreurParsing("Source ou cible vide");
+    if (!estNomValide(source) || !estNomValide(cible)) throw ErreurParsing("Noms invalides dans l'attaque");
 
     return {source, cible};
 }
 
-
-// Vérifie si un nom d'argument est valide
+// Vérifie si un nom d'argument est valide (lettres, chiffres, underscore, pas "arg" ni "att")
 bool Parseur::estNomValide(const std::string& nom) {
-    // Un nom valide doit être : non vide, contenant uniquement lettres, chiffres, underscore,
-    // pas un mot réservé (arg, att)
+    if (nom.empty()) return false;
+    if (nom == "arg" || nom == "att") return false;  // Mots réservés par le format APX
 
-    if (nom.empty()) {
-        return false;
-    }
-    if (nom == "arg" || nom == "att") {
-        return false;
-    }
-
-    bool tousCaracteresValides = std::all_of(  // retourne true si le prédicat est vrai pour tous les éléments
-        nom.begin(),
-        nom.end(),
-        [](char c) {  // fonction anonyme prenant un char et retourne un bool
-            return std::isalnum(static_cast<unsigned char>(c)) || c == '_';  // cast évite un warning si char est signé
-        }
-    );
-
-    return tousCaracteresValides;
+    // std::all_of retourne true si le prédicat (lambda) est vrai pour tout caractère
+    return std::all_of(nom.begin(), nom.end(), [](char c) {
+        return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
+    });
 }
 
 // Supprime les espaces en début et fin de chaîne (trim)
 std::string Parseur::trim(const std::string& str) {
-    if (str.empty()) {
-        return str;
-    }
-    auto debut = std::find_if(  // retourne un itérateur vers le premier élément satisfaisant
-        str.begin(),
-        str.end(),
-        [](unsigned char c) { return !std::isspace(c); }  // cherche le premier caractère qui n'est pas un espace
-    );
-    if (debut == str.end()) {  // si toute la chaîne est composée d'espaces
-        return "";
-    }
+    if (str.empty()) return str;
 
-    auto fin = std::find_if(  // parcourt à l'envers
-        str.rbegin(),  // reverse begin (commence à la fin)
-        str.rend(),  // reverse end (s'arrête au début)
-        [](unsigned char c) { return !std::isspace(c); }
-    ).base();  // convertit un reverse_iterator en iterator normal
+    // Recherche du premier caractère depuis le début
+    auto debut = std::find_if(str.begin(), str.end(), [](unsigned char c) {
+        return !std::isspace(c);
+    });
 
-    return std::string(debut, fin);  // crée une nouvelle chaîne contenant (debut, fin)
+    if (debut == str.end()) return ""; // Chaîne vide ou uniquement des espaces
+
+    // Recherche du premier caractère depuis la fin (reverse iterator)
+    auto fin = std::find_if(str.rbegin(), str.rend(), [](unsigned char c) {
+        return !std::isspace(c);
+    }).base(); // .base() reconvertit l'itérateur inverse en itérateur normal pour le constructeur de string
+
+    return {debut, fin};
 }
