@@ -2,210 +2,138 @@
  * Implémentation des fonctions utilitaires pour l'argumentation */
 
 #include "Utilitaires.hpp"
-#include <algorithm>    // Pour std::set_difference, std::set_union, etc.
-#include <iterator>     // Pour std::inserter
-#include <sstream>      // Pour std::stringstream (conversion string)
+#include <algorithm>  // std::sort
+#include <sstream>  // std::stringstream
 
 
 namespace Utilitaires {
 
-// Vérifie si un ensemble S est sans conflit (aucun argument de S n'attaque un autre argument de S)
-bool estSansConflit(const EnsembleArguments& S,
-                    const SystemeArgumentation& sa) {
-
-    // Si S est vide ou a 1 élément, toujours sans conflit
-    if (S.size() <= 1) {
-        return true;
+// Convertit une liste de noms en une liste d'identifiants triée, en ignorant les noms inexistants
+EnsembleIds convertirNomsEnIds(const std::vector<std::string>& noms, const SystemeArgumentation& sa) {
+    EnsembleIds ids;
+    ids.reserve(noms.size());  // Allocation préventive pour éviter les réallocations multiples
+    for (const auto& nom : noms) {
+        if (sa.argumentExiste(nom)) {
+            ids.push_back(sa.getId(nom));  // Conversion O(1) via la Hash Map du système
+        }
     }
+    // Tri crucial permettant d'utiliser la recherche binaire via std::binary_search
+    // et garantit l'unicité des représentations d'ensembles.
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
 
-    // Pour chaque (a,b) dans S, si a attaque b alors retourner false, sinon si aucune attaque trouvée retourner true
-    for (const auto& a : S) {
-        for (const auto& b : S) {
-            if (sa.attaqueExiste(a, b)) {  // vérifier si a attaque b
-                return false;  // conflit détecté
+// Convertit une liste d'identifiants en une liste de noms pour l'affichage
+std::vector<std::string> convertirIdsEnNoms(const EnsembleIds& ids, const SystemeArgumentation& sa) {
+    std::vector<std::string> noms;
+    noms.reserve(ids.size());
+    for (int id : ids) {
+        noms.push_back(sa.getNom(id));  // Accès O(1) au vecteur de noms
+    }
+    return noms;
+}
+
+// Vérifie si un ensemble d'arguments est sans conflit
+bool estSansConflit(const EnsembleIds& S, const SystemeArgumentation& sa) {
+    // Double boucle imbriquée pour tester toutes les paires possibles de complexité : O(|S|²) appels à attaqueExiste
+    for (size_t i = 0; i < S.size(); ++i) {
+        for (size_t j = 0; j < S.size(); ++j) {
+            // On teste si l'élément i attaque l'élément j.
+            if (sa.attaqueExiste(S[i], S[j])) {
+                return false;  // Dès qu'une attaque interne est trouvée, l'ensemble est invalide
             }
         }
     }
-
-    return true;  // aucun conflit trouvé
-}
-
-
-// Vérifie si un ensemble S défend un argument arg (pour chaque attaquant b de arg, un c de S contre-attaque b)
-bool defend(const EnsembleArguments& S,
-            const std::string& arg,
-            const SystemeArgumentation& sa) {
-
-    // Récupérer l'ensemble des attaquants de arg
-    EnsembleArguments attaquants = sa.getAttaquants(arg);
-
-    if (attaquants.empty()) {  // si arg n'a aucun attaquant, il est défendu par tout
-        return true;
-    }
-
-    // Pour chaque attaquant b : Vérifier qu'au moins un élément de S attaque b
-    for (const auto& attaquant : attaquants) {
-        bool attaquantEstContreAttaque = false;
-        for (const auto& defenseur : S) {
-            if (sa.attaqueExiste(defenseur, attaquant)) {
-                attaquantEstContreAttaque = true;  // défenseur dans S qui attaque cet attaquant
-                break;  // pas besoin de chercher d'autres défenseurs
-            }
-        }
-
-        if (!attaquantEstContreAttaque) {  // si cet attaquant n'est pas contre-attaqué, S ne défend pas arg
-            return false;
-        }
-    }
-
-    return true; // Tous les attaquants sont contre-attaqués donc S défend arg
-}
-
-
-// Vérifie si un ensemble S est admissible (sans conflit et défend tous ses éléments)
-bool estAdmissible(const EnsembleArguments& S,
-                   const SystemeArgumentation& sa) {
-
-    if (!estSansConflit(S, sa)) { // Sans conflit
-        return false;  // Si S a un conflit, pas admissible
-    }
-
-    // Défend tous ses éléments
-    for (const auto& arg : S) {
-        if (!defend(S, arg, sa)) {
-            return false;  // S ne défend pas arg, donc S n'est pas admissible
-        }
-    }
-
     return true;
 }
 
+// Vérifie si un ensemble S défend un argument spécifique contre tous ses attaquants
+bool defend(const EnsembleIds& S, int cibleId, const SystemeArgumentation& sa) {
+    // Récupération optimisée des attaquants via le graphe inverse (parents_)
+    const std::vector<int>& attaquants = sa.getParents()[cibleId];
 
-// Vérifie si un ensemble S attaque tous les autres arguments
-bool attaqueTousLesAutres(const EnsembleArguments& S,
-                          const SystemeArgumentation& sa) {
-
-    const EnsembleArguments& tousLesArguments = sa.getArguments(); // récupérer tous les arguments du système
-    EnsembleArguments horsDeS = difference(tousLesArguments, S); // calculer A\S (arguments hors de S)
-
-    for (const auto& arg : horsDeS) {  // pour chaque a dans A\S
-        bool argEstAttaque = false;
-        for (const auto& attaquant : S) {
-            if (sa.attaqueExiste(attaquant, arg)) {
-                argEstAttaque = true;  // arg est attaqué par attaquant
-                break;  // pas besoin de chercher d'autres attaquants
+    // Pour chaque attaquant, on doit trouver une contre-attaque venant de S
+    for (int attaquant : attaquants) {
+        bool estContreAttaque = false;
+        for (int defenseur : S) {  // Recherche d'un défenseur dans S
+            if (sa.attaqueExiste(defenseur, attaquant)) {
+                estContreAttaque = true;  // L'attaquant est neutralisé
+                break;  // Pas besoin de chercher d'autres défenseurs pour cet attaquant
             }
         }
+        // Si un seul attaquant n'est pas neutralisé, la défense échoue
+        if (!estContreAttaque) return false;
+    }
+    return true;
+}
 
-        if (!argEstAttaque) {  // si arg n'est attaqué par personne dans S, échec
-            return false;
+// Vérifie si un ensemble est admissible
+bool estAdmissible(const EnsembleIds& S, const SystemeArgumentation& sa) {
+    if (!estSansConflit(S, sa)) return false;  // Condition de base : cohérence interne
+
+    for (int arg : S) {  // Condition de défense : S doit se protéger lui-même
+        if (!defend(S, arg, sa)) return false;  // Si un membre n'est pas défendu, S n'est pas admissible
+    }
+    return true;
+}
+
+// Vérifie si un ensemble attaque tous les arguments qui ne lui appartiennent pas
+bool attaqueToutExterieur(const EnsembleIds& S, const SystemeArgumentation& sa) {
+    size_t nbArgs = sa.getNbArguments();
+
+    // Optimisation : Création d'un masque booléen pour tester l'appartenance à S en O(1)
+    // C'est beaucoup plus rapide que de faire des recherches linéaires répétées dans S.
+    std::vector<bool> estDansS(nbArgs, false);
+    for (int id : S) estDansS[id] = true;
+
+    // Parcours de tous les arguments de l'univers
+    for (size_t a = 0; a < nbArgs; ++a) {
+        // On ne s'intéresse qu'aux arguments EXTERIEURS à S (A \ S)
+        if (!estDansS[a]) {
+            bool estAttaque = false;
+            // On regarde les parents de a (ceux qui l'attaquent)
+            const auto& attaquantsDeA = sa.getParents()[a];
+
+            // Vérification : est-ce que l'un des attaquants appartient à S ?
+            for (int attaquant : attaquantsDeA) {
+                if (estDansS[attaquant]) {
+                    estAttaque = true;
+                    break;  // a est bien attaqué par S
+                }
+            }
+            // Si un argument extérieur n'est attaqué par personne de S, la condition échoue
+            if (!estAttaque) return false;
         }
     }
-
-    return true;  // tous les arguments hors de S sont attaqués donc succès
+    return true;
 }
 
+// Calcule l'ensemble de tous les arguments défendus par S.
+EnsembleIds fonctionCaracteristique(const EnsembleIds& S, const SystemeArgumentation& sa) {
+    EnsembleIds result;
+    size_t nbArgs = sa.getNbArguments();
 
-
-// Différence ensembliste (A\B)
-EnsembleArguments difference(const EnsembleArguments& A,
-                             const EnsembleArguments& B) {
-
-    EnsembleArguments resultat;
-
-    std::set_difference(
-        A.begin(), A.end(),
-        B.begin(), B.end(),
-        std::inserter(resultat, resultat.begin())
-    );
-
-    return resultat;
-}
-
-
-// Union ensembliste (A ∪ B)
-EnsembleArguments unionEnsembles(const EnsembleArguments& A,
-                                 const EnsembleArguments& B) {
-
-    EnsembleArguments resultat;
-
-    std::set_union(
-        A.begin(), A.end(),
-        B.begin(), B.end(),
-        std::inserter(resultat, resultat.begin())
-    );
-
-    return resultat;
-}
-
-
-// Intersection ensembliste (A ∩ B)
-EnsembleArguments intersection(const EnsembleArguments& A,
-                               const EnsembleArguments& B) {
-
-    EnsembleArguments resultat;
-
-    std::set_intersection(
-        A.begin(), A.end(),
-        B.begin(), B.end(),
-        std::inserter(resultat, resultat.begin())
-    );
-
-    return resultat;
-}
-
-
-// Vérifie si A est sous-ensemble de B
-bool estSousEnsemble(const EnsembleArguments& A,
-                     const EnsembleArguments& B) {
-
-    return std::includes(
-        B.begin(), B.end(),  // Plage "conteneur" (B)
-        A.begin(), A.end()   // Plage "contenu" (A)
-    );
-}
-
-// Calcule F(S) = {a dans A tq S défend a} (ensemble de tous les arguments défendus par S)
-EnsembleArguments fonctionCaracteristique(const EnsembleArguments& S,
-                                          const SystemeArgumentation& sa) {
-
-    EnsembleArguments resultat;
-
-    const EnsembleArguments& tousLesArguments = sa.getArguments();
-
-    for (const auto& arg : tousLesArguments) {  // pour chaque argument a du système
-        if (defend(S, arg, sa)) {  // si S défend a
-            resultat.insert(arg);  // ajouter a au résultat
+    // Approche naïve, mais robuste : on teste la défense pour chaque argument de l'univers
+    // Pourrait être optimisée en ne testant que les arguments attaqués par des arguments attaqués par S
+    for (size_t a = 0; a < nbArgs; ++a) {
+        if (defend(S, static_cast<int>(a), sa)) {
+            result.push_back(static_cast<int>(a));
         }
     }
-
-    return resultat;
+    return result;
 }
 
-
-// Convertit un ensemble en string pour affichage
-std::string ensembleVersString(const EnsembleArguments& S) {
-    if (S.empty()) {
-        return "{}";
-    }
-
-    std::stringstream ss;  // flux qui écrit dans une chaîne
+// Formate l'ensemble pour l'affichage (pour débug).
+std::string afficher(const EnsembleIds& S, const SystemeArgumentation& sa) {
+    if (S.empty()) return "{}";
+    std::stringstream ss;
     ss << "{";
-
-    auto it = S.begin();
-    auto dernier = std::prev(S.end());  // itérateur vers le dernier élément
-
-    for (; it != S.end(); ++it) {
-        ss << *it;
-        if (it != dernier) {
-            ss << ", ";
-        }
+    for (size_t i = 0; i < S.size(); ++i) {
+        ss << sa.getNom(S[i]);  // Retraduction ID -> Nom
+        if (i < S.size() - 1) ss << ", ";
     }
-
     ss << "}";
-
     return ss.str();
 }
-}  // namespace Utilitaires
 
-
+}
