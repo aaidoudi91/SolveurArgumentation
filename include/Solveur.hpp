@@ -1,22 +1,14 @@
 /* Solveur.hpp
- * Résout les 6 problèmes d'argumentation demandés : VE-PR, DC-PR, DS-PR, VE-ST, DC-ST, DS-ST
- * Notation :
- *   - VE = Verify Extension (vérifier si S est une extension)
- *   - DC = Decide Credulous (acceptabilité crédule : ∃ extension contenant a)
- *   - DS = Decide Skeptical (acceptabilité sceptique : ∀ extensions contiennent a)
- *   - PR = Preferred (sémantique préférée)
- *   - ST = Stable (sémantique stable) */
+ * Interface faisant le pont entre les requêtes utilisateur et les algorithmes de sémantiques. */
 
 #ifndef SOLVEUR_HPP
 #define SOLVEUR_HPP
 
-
-#include <set>
-#include <string>
+#include <vector>  // std::vector
+#include <string>  // std::string
 #include "SystemeArgumentation.hpp"
 
-
-
+// Enumération pour identifier le type de tâche demandée
 enum class TypeProbleme {
     VE_PR,  // Verify Extension - Preferred
     DC_PR,  // Decide Credulous - Preferred
@@ -26,52 +18,34 @@ enum class TypeProbleme {
     DS_ST   // Decide Skeptical - Stable
 };
 
-
 class Solveur {
 public:
-    using EnsembleArguments = std::set<std::string>;
-
-    // Construit un solveur pour un système d'argumentation donné
-    // le système est passé par référence constante et stocké comme référence, évitant de copier tout le système
+    // Constructeur pour garder une référence vers le système
     explicit Solveur(const SystemeArgumentation& sa);
 
-    
-    // VE-PR : Vérifie si S est une extension préférée
-    // retourne true si oui, false sinon
-    bool verifierExtensionPreferee(const EnsembleArguments& S) const;
+    // Vérifie si l'ensemble d'arguments est une extension préférée
+    bool verifierExtensionPreferee(const std::vector<std::string>& ensembleNoms) const;
+    // Vérifie si l'ensemble est une extension stable
+    bool verifierExtensionStable(const std::vector<std::string>& ensembleNoms) const;
 
-    // VE-ST : Vérifie si S est une extension stable
-    // retourne true si oui, false sinon
-    bool verifierExtensionStable(const EnsembleArguments& S) const;
-
-    // DC-PR : Acceptabilité crédule pour la sémantique préférée
-    // retourne true si oui, false sinon
+    // Détermine si l'argument donné appartient à au moins une extension préférée
     bool acceptationCredulePreferee(const std::string& arg) const;
-
-    // DS-PR : Acceptabilité sceptique pour la sémantique préférée
-    // retourne true si oui, false sinon
-    bool acceptationSceptiquePreferee(const std::string& arg) const;
-
-    // DC-ST : Acceptabilité crédule pour la sémantique stable
-    // retourne true si oui, false sinon
+    // Détermine si l'argument donné appartient à au moins une extension stable
     bool acceptationCreduleStable(const std::string& arg) const;
 
-    // DS-ST : Acceptabilité sceptique pour la sémantique stable
-    // retourne true si oui, false sinon (si aucune extension stable, retourne true)
+    // Détermine si l'argument donné appartient à toutes les extensions préférées
+    bool acceptationSceptiquePreferee(const std::string& arg) const;
+    // Détermine si l'argument donné appartient à toutes les extensions stables
     bool acceptationSceptiqueStable(const std::string& arg) const;
 
-    
-    // Résout un problème donné (dispatch vers la bonne méthode)
+    // Appelle la bonne méthode selon le TypeProbleme
     bool resoudre(TypeProbleme probleme,
-                  const EnsembleArguments& ensembleArgs,
+                  const std::vector<std::string>& ensembleArgs,
                   const std::string& argument) const;
 
-
 private:
-    // Référence constante vers le système d'argumentation
-    // const ne modifie pas le système ; & est une référence pas une copie
+    // Référence constante vers le graphe
     const SystemeArgumentation& systeme_;
-
 };
 
 #endif // SOLVEUR_HPP
