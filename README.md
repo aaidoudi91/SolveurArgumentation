@@ -95,11 +95,10 @@ Les erreurs éventuelles (fichier introuvable, syntaxe invalide) sont affichées
 
 ## Auteur
 
-**Aidoudi Aaron**
+Aidoudi Aaron
 
-UE Représentation des Connaissances et Raisonnement
-
-Master 1 Intelligence Artificielle Distribuée - Université Paris Cité
+UE Représentation des Connaissances et Raisonnement - Master 1 d'Intelligence Artificielle Distribuée à l'Université Paris Cité
 
 Année Universitaire 2025-2026
+
 
