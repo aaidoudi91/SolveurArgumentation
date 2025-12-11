@@ -17,7 +17,7 @@ Les problèmes traités sont :
 ```
 SolveurArgumentation/   
 │
-├── Makefile                      # Script de compilation (gère les dépendances et l'édition de liens)
+├── Makefile                      # Script de compilation 
 ├── solveur                       # Exécutable final (généré après compilation)
 │
 ├── Rapport.pdf                   # Rapport technique détaillé
@@ -41,7 +41,7 @@ SolveurArgumentation/
 ├── obj/                           # Fichiers objets (.o) et dépendances (.d) générés
 │
 └── tests/                         # Jeux de tests
-    ├── verifier_tout.py           # Script Python pour validation exhaustive (Brute Force)
+    ├── verifier_tout.py           # Script Python pour validation exhaustive
     └── cas_test/                  # Fichiers d'instances (.apx)
         ├── test_af1.apx           
         └── ...
@@ -102,3 +102,4 @@ UE Représentation des Connaissances et Raisonnement
 Master 1 Intelligence Artificielle Distribuée - Université Paris Cité
 
 Année Universitaire 2025-2026
+
