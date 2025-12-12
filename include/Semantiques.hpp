@@ -5,24 +5,24 @@
 #define SEMANTIQUES_HPP
 
 #include "SystemeArgumentation.hpp"
-#include "Utilitaires.hpp" // Pour EnsembleIds
+#include "Utilitaires.hpp"
 
 
 class Semantiques {
 public:
-    // Vérification (VE)
+    // Vérification VE
     // Vérifie si S est une extension stable
     static bool verifierStable(const Utilitaires::EnsembleIds& S, const SystemeArgumentation& sa);
     // Vérifie si S est une extension préférée
     static bool verifierPreferee(const Utilitaires::EnsembleIds& S, const SystemeArgumentation& sa);
 
-    // Decision Credulous (DC)
+    // Decision Credulous DC
     // Acceptabilité crédule pour la sémantique stable
     static bool credulousStable(int argId, const SystemeArgumentation& sa);
     // Acceptabilité crédule pour la sémantique préférée
     static bool credulousPreferred(int argId, const SystemeArgumentation& sa);
 
-    // Decision Skeptical (DS)
+    // Decision Skeptical DS
     // Acceptabilité sceptique pour la sémantique stable
     static bool skepticalStable(int argId, const SystemeArgumentation& sa);
     // Acceptabilité sceptique pour la sémantique préférée

@@ -10,12 +10,11 @@
 #include "SystemeArgumentation.hpp"
 
 
-// Fonction utilitaire pour découper une chaîne "a,b,c" en vecteur {"a", "b", "c"}
+// Découpe une chaîne "a,b,c" en vecteur {"a", "b", "c"}
 std::vector<std::string> decouperArguments(const std::string& chaineArgs) {
     std::vector<std::string> result;
     std::stringstream ss(chaineArgs);
     std::string segment;
-
     while (std::getline(ss, segment, ',')) {
         if (!segment.empty()) {
             result.push_back(segment);
@@ -24,11 +23,11 @@ std::vector<std::string> decouperArguments(const std::string& chaineArgs) {
     return result;
 }
 
-// Fonction d'aide pour l'affichage de l'usage en cas d'erreur
+// Aide pour l'affichage de l'usage en cas d'erreur
 void afficherUsage(const char* progName) {
     std::cerr << "Usage : " << progName << " -p PROBLEM -f FILE -a ARGUMENTS" << std::endl;
     std::cerr << "Exemple : " << progName << " -p VE-PR -f file.apx -a a,b,c" << std::endl;
-    std::cerr << "Problemes supportes : VE-PR, DC-PR, DS-PR, VE-ST, DC-ST, DS-ST" << std::endl;
+    std::cerr << "Problemes supportés : VE-PR, DC-PR, DS-PR, VE-ST, DC-ST, DS-ST" << std::endl;
 }
 
 
@@ -58,7 +57,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Conversion du type de problème (String -> Enum)
+    // Conversion du type de problème
     try {
         TypeProbleme probleme;
         bool modeEnsemble = false; // true pour VE (ensemble), false pour DC/DS (un seul argument)
@@ -83,10 +82,8 @@ int main(int argc, char* argv[]) {
 
         // Chargement et Construction du Système
         SystemeArgumentation sa = Parseur::parserFichier(cheminFichier);
-
         // Initialisation du solveur
         Solveur solveur(sa);
-
         // Préparation des données pour le solveur
         std::vector<std::string> argsVector = decouperArguments(argumentsStr);
         bool resultat = false;

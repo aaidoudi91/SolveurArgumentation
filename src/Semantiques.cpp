@@ -15,18 +15,17 @@ namespace {
 
     // Vérifie si l'ajout de candidat à S conserve l'admissibilité, utilisé pour vérifier VE-PR
     bool estExtensibleAvec(const EnsembleIds& S, int candidat, const SystemeArgumentation& sa) {
-        // S est trié. On vérifie si candidat est déjà dedans
+        // S est trié, on vérifie si candidat est déjà dedans
         if (std::binary_search(S.begin(), S.end(), candidat)) {
             return false;  // Déjà présent donc pas une extension stricte
         }
-
         // On crée S' = S U {candidat}
         EnsembleIds S_prime = S;
         S_prime.push_back(candidat);
-        // On maintient trie pour faciliter les algos utilitaires
+        // On maintient le trie pour faciliter les algos utilitaires
         std::sort(S_prime.begin(), S_prime.end());
 
-        // Vérification rapide : S' doit être admissible
+        // S' doit être admissible
         return estAdmissible(S_prime, sa);
     }
 
@@ -43,14 +42,13 @@ namespace {
         }
     }
 
-    // Cherche à construire un ensemble admissible valide respectant les contraintes labels.
-    // Retourne true si une solution existe.
+    // Cherche à construire un ensemble admissible valide respectant les contraintes labels
     bool trouverAdmissibleRecursive(vector<Label>& labels, const vector<vector<int>>& parents,
         const vector<vector<int>>& adjacence, const SystemeArgumentation& sa) {
 
         int argAProbleme = -1;
 
-        // 1. Détection de conflits ou de besoin de défense
+        // 1 - Détection de conflits ou de besoin de défense
         // On cherche un argument IN qui n'est pas correctement défendu
         for (size_t i = 0; i < labels.size(); ++i) {
             if (labels[i] == IN) {
@@ -59,7 +57,7 @@ namespace {
                     if (labels[attaquant] != OUT) {  // L'attaquant n'est ni IN ni OUT donc UNDEC
                         // Il faut le passer à OUT pour défendre i
                         argAProbleme = static_cast<int>(i);
-                        break; // On a trouvé un problème à résoudre
+                        break;  // On a trouvé un problème à résoudre
                     }
                 }
             }
@@ -68,7 +66,7 @@ namespace {
         // Si aucun problème détecté, l'ensemble courant est admissible
         if (argAProbleme == -1) return true;
 
-        // 2. Résolution du problème : backtracking
+        // 2 - Résolution du problème : backtracking
         // id est l'argument IN qui est attaqué par des arguments non-OUT
         int id = argAProbleme;
         // On cherche l'agresseur spécifique qui pose problème
@@ -114,15 +112,13 @@ namespace {
 
         // Cas de base : tous les arguments ont été traités
         if (static_cast<size_t>(index) == n) {
-            // Vérification finale : L'ensemble des IN doit attaquer tous les OUT
+            // L'ensemble des IN doit attaquer tous les OUT
             EnsembleIds S;
             for(size_t i=0; i<n; ++i) if(labels[i] == IN) S.push_back(static_cast<int>(i));
             return attaqueToutExterieur(S, sa);
         }
-
         // Si l'argument est déjà décidé par propagation précédente
         if (labels[index] != UNDEC) {
-            // Vérification de cohérence
             if (labels[index] == IN) {
                 // S'il est IN, aucun attaquant ne peut être IN
                 for (int p : parents[index]) if (labels[p] == IN) return false;
@@ -136,12 +132,10 @@ namespace {
             for (int p : parents[index]) {
                 if (labels[p] == IN) { possibleIN = false; break; }
             }
-
             // Propagation : Tous les voisins attaqués deviennent OUT
             if (possibleIN) {
                 vector<Label> backup = labels;
                 labels[index] = IN;
-
                 // Propagation : Tous les voisins attaqués deviennent OUT
                 const auto& cibles = sa.getAdjacence()[index];
                 bool conflit = false;
@@ -149,14 +143,12 @@ namespace {
                     if (labels[c] == IN) { conflit = true; break; }
                     labels[c] = OUT;
                 }
-
                 if (!conflit) {
                     if (trouverStableRecursive(labels, index + 1, sa, parents)) return true;
                 }
                 labels = backup; // Backtrack
             }
         }
-
         // Branche 2 - Tenter de mettre l'argument à OUT
         {
             vector<Label> backup = labels;
@@ -170,20 +162,19 @@ namespace {
 } // namespace
 
 
-// Vérification (VE)
+// Vérification VE
 // Vérifie si S est une extension stable
 bool Semantiques::verifierStable(const EnsembleIds& S, const SystemeArgumentation& sa) {
     // Une extension stable est sans conflit et attaque tous les arguments extérieurs
     if (!estSansConflit(S, sa)) return false;
     return attaqueToutExterieur(S, sa);
 }
-
 // Vérifie si S est une extension préférée
 bool Semantiques::verifierPreferee(const EnsembleIds& S, const SystemeArgumentation& sa) {
-    // 1. S doit être un ensemble admissible
+    // 1 - S doit être un ensemble admissible
     if (!estAdmissible(S, sa)) return false;
 
-    // 2. S doit être maximal
+    // 2 - S doit être maximal
     // Heuristique : on vérifie si on peut ajouter un seul argument externe i
     // tel que S U {i} reste admissible : si oui alors S n'est pas maximal
     size_t nbArgs = sa.getNbArguments();
@@ -202,61 +193,56 @@ bool Semantiques::verifierPreferee(const EnsembleIds& S, const SystemeArgumentat
 }
 
 
-// Decision Credulous (DC)
+// Decision Credulous DC
 // Acceptabilité crédule pour la sémantique stable
 bool Semantiques::credulousStable(int argId, const SystemeArgumentation& sa) {
     size_t n = sa.getNbArguments();
     vector<Label> labels(n, UNDEC);
-
     // Initialisation : on force l'argument cible à IN
     labels[argId] = IN;
-
     // Propagation : ses cibles deviennent OUT
     const auto& cibles = sa.getAdjacence()[argId];
     for (int c : cibles) {
         if (c == argId) return false; // Auto-attaque
         labels[c] = OUT;
     }
-
     // Vérification : ses parents ne peuvent pas être IN
     for (int p : sa.getParents()[argId]) {
         if (p == argId) return false;
     }
-
     return trouverStableRecursive(labels, 0, sa, sa.getParents());
 }
-
 // Acceptabilité crédule pour la sémantique préférée
 bool Semantiques::credulousPreferred(int argId, const SystemeArgumentation& sa) {
     // On cherche une extension admissible contenant argId
     size_t n = sa.getNbArguments();
     vector<Label> labels(n, UNDEC);
 
-    // 1. Hypothèse : argId est IN
+    // 1 - Hypothèse : argId est IN
     labels[argId] = IN;
-
-    // 2. Propagation aux cibles (elles deviennent OUT)
+    // 2 - Propagation aux cibles, elles deviennent OUT
     const auto& cibles = sa.getAdjacence()[argId];
     for (int c : cibles) {
         if (c == argId) return false; // Auto-attaque
         labels[c] = OUT;
     }
-
-    // 3. Vérification de base (pas d'auto-attaque parentale)
+    // 3 - Vérification : pas d'auto-attaque parentale
     for (int p : sa.getParents()[argId]) {
         if (p == argId) return false; // Auto-attaque
     }
 
-    // On ne force pas les attaquants à OUT ici. On laisse le solveur trouverAdmissibleRecursive
-    // détecter qu'ils ne sont pas OUT et chercher des défenseurs.
+    // On ne force pas les attaquants à OUT ici : on laisse le solveur trouverAdmissibleRecursive
+    // détecter qu'ils ne sont pas OUT et chercher des défenseurs
     return trouverAdmissibleRecursive(labels, sa.getParents(), sa.getAdjacence(), sa);
 }
 
-// Decision Skeptical (DS)
+// Decision Skeptical DS
 // Acceptabilité sceptique pour la sémantique stable
 bool Semantiques::skepticalStable(int argId, const SystemeArgumentation& sa) {
-    // On cherche de contre-exemple : si on trouve une extension stable où argId n'est pas IN, alors return FALSE
+    // Il doit être au moins stable une fois
+    if (!credulousStable(argId, sa)) return false;
 
+    // On cherche de contre-exemple : si on trouve une extension stable où argId n'est pas IN, alors return FALSE
     size_t n = sa.getNbArguments();
     vector<Label> labels(n, UNDEC);
     // On force argId à être OUT
@@ -275,7 +261,6 @@ bool Semantiques::skepticalPreferred(int argId, const SystemeArgumentation& sa) 
     if (!credulousPreferred(argId, sa)) return false;
 
     // On cherche un contre-exemple par exploration en essayant de construire une ext pr qui ne contient pas argId
-
     size_t n = sa.getNbArguments();
     vector<Label> labels(n, UNDEC);
     // On force argId à être OUT
@@ -300,6 +285,9 @@ bool Semantiques::skepticalPreferred(int argId, const SystemeArgumentation& sa) 
             EnsembleIds S;
             for(size_t i=0; i<n; ++i) if(localLabels[i] == IN) S.push_back((int)i);
 
+            if (!estAdmissible(S, sa)) {
+                return false; // Faux positif rejeté
+            }
             // On l'étend au maximum
             etendreEnMaximal(S, sa);
 
@@ -313,12 +301,12 @@ bool Semantiques::skepticalPreferred(int argId, const SystemeArgumentation& sa) 
         return false;
     };
 
-    // 1. Test de l'ensemble vide (cas où argId n'est pas nécessaire)
+    // Test de l'ensemble vide (cas où argId n'est pas nécessaire)
     EnsembleIds vide;
     etendreEnMaximal(vide, sa);
     if (!std::binary_search(vide.begin(), vide.end(), argId)) return false;
 
-    // 2. Exploration depuis chaque autre argument
+    // Exploration depuis chaque autre argument
     for (size_t i = 0; i < n; ++i) {
         if (static_cast<int>(i) == argId) continue;
         if (chercherContreExemple(static_cast<int>(i))) {

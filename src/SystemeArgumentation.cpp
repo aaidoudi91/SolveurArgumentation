@@ -1,5 +1,5 @@
 /* SystemeArgumentation.cpp
- * Implémentation de la classe gérant le graphe d'argumentation. */
+ * Implémentation de la classe gérant le système d'argumentation. */
 
 #include "SystemeArgumentation.hpp"
 #include <algorithm>  // pour std::find
@@ -11,13 +11,12 @@ bool SystemeArgumentation::ajouterArgument(const std::string& arg) {
     if (nomVersId_.find(arg) != nomVersId_.end()) {  // Vérification de l'existence
         return false;
     }
-    int id = static_cast<int>(idVersNom_.size());   // ID correspond à l'index dans le vecteur
+    int id = static_cast<int>(idVersNom_.size());   // Identifiant correspond à l'index dans le vecteur
     nomVersId_[arg] = id;  // Enregistrement dans la table de hachage
     idVersNom_.push_back(arg);  // Enregistrement dans le vecteur de noms
 
     adjacence_.resize(id + 1); // Agrandit le vecteur d'adjacence pour le nouveau nœud
     parents_.resize(id + 1);   // Agrandit le vecteur des parents de même
-
     return true;
 }
 
@@ -27,8 +26,8 @@ bool SystemeArgumentation::ajouterAttaque(const std::string& source, const std::
     if (nomVersId_.find(source) == nomVersId_.end() || nomVersId_.find(cible) == nomVersId_.end()) {
         return false;
     }
-    int u = nomVersId_[source]; // Récupération ID source
-    int v = nomVersId_[cible];  // Récupération ID cible
+    int u = nomVersId_[source]; // Récupération identifiant source
+    int v = nomVersId_[cible];  // Récupération identifiant cible
 
     for (int cibleExistante : adjacence_[u]) {  // Vérification de doublon d'attaque
         if (cibleExistante == v) return false;
@@ -36,7 +35,6 @@ bool SystemeArgumentation::ajouterAttaque(const std::string& source, const std::
 
     adjacence_[u].push_back(v); // Ajout de l'arc u -> v
     parents_[v].push_back(u);   // Ajout de l'arc inverse v <- u
-
     return true;
 }
 
@@ -77,7 +75,7 @@ bool SystemeArgumentation::argumentExiste(const std::string& arg) const {
 // Vérifie l'existence d'une attaque via les noms
 bool SystemeArgumentation::attaqueExiste(const std::string& source, const std::string& cible) const {
     if (!argumentExiste(source) || !argumentExiste(cible)) return false;
-    return attaqueExiste(nomVersId_.at(source), nomVersId_.at(cible));  // Renvoie à la version optimisée
+    return attaqueExiste(nomVersId_.at(source), nomVersId_.at(cible));
 }
 
 // Vérifie l'existence d'une attaque via les identifiants
@@ -92,7 +90,7 @@ const std::vector<std::string>& SystemeArgumentation::getArguments() const {
     return idVersNom_;
 }
 
-// Reconstruit la liste de toutes les attaques (paires de noms)
+// Reconstruit la liste de toutes les attaques
 std::vector<std::pair<std::string, std::string>> SystemeArgumentation::getAttaques() const {
     std::vector<std::pair<std::string, std::string>> liste;
     // Parcours complet du graphe d'adjacence
@@ -129,7 +127,7 @@ std::vector<std::string> SystemeArgumentation::getCibles(const std::string& arg)
     return result;
 }
 
-// Vide toutes les structures de données.
+// Vide toutes les structures de données
 void SystemeArgumentation::vider() {
     nomVersId_.clear();
     idVersNom_.clear();
@@ -137,7 +135,7 @@ void SystemeArgumentation::vider() {
     parents_.clear();
 }
 
-// Affiche le système (pour débug)
+// Affiche le système
 void SystemeArgumentation::afficher() const {
     std::cout << "Système d'Argumentation : " << std::endl;
     std::cout << getNbArguments() << " Arguments : " << std::endl;

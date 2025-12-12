@@ -5,21 +5,21 @@
 #define SYSTEME_ARGUMENTATION_HPP
 
 #include <string>  // std::string
-#include <vector>  // std::vector (tableau dynamique)
-#include <unordered_map>  // std::unordered_map (table de hachage)
+#include <vector>  // std::vector
+#include <unordered_map>  // std::unordered_map
 #include <utility>  // std::pair
 #include <iostream>  // std::cout, std::ostream
 
 
 class SystemeArgumentation {
 private:
-    // Associe chaque nom d'argument à un identifiant unique entier (pour accès en O(1))
+    // Associe chaque nom d'argument à un identifiant unique entier
     std::unordered_map<std::string, int> nomVersId_;
     // Tableau permettant de retrouver le nom d'un argument à partir de son identifiant entier
     std::vector<std::string> idVersNom_;
     // Graphe des attaques : adjacence_[i] contient la liste des cibles attaquées par l'argument i
     std::vector<std::vector<int>> adjacence_;
-    // Graphe inverse : parents_[i] contient la liste des attaquants de l'argument i (optimisation pour la défense)
+    // Graphe inverse : parents_[i] contient la liste des attaquants de l'argument i
     std::vector<std::vector<int>> parents_;
 
 public:
@@ -35,13 +35,13 @@ public:
 
     // Retourne le nombre total d'arguments
     size_t getNbArguments() const;
-    // Retourne l'identifiant entier associé à un nom d'argument (lance une exception si introuvable)
+    // Retourne l'identifiant entier associé à un nom d'argument ou lance une exception si introuvable
     int getId(const std::string& nom) const;
     // Retourne le nom de l'argument correspondant à l'identifiant donné
     const std::string& getNom(int id) const;
-    // Retourne une référence constante vers le graphe d'adjacence (pour les algorithmes)
+    // Retourne une référence constante vers le graphe d'adjacence
     const std::vector<std::vector<int>>& getAdjacence() const;
-    // Retourne une référence constante vers le graphe des parents (pour vérifier la défense)
+    // Retourne une référence constante vers le graphe des parents
     const std::vector<std::vector<int>>& getParents() const;
 
     // Vérifie si un argument est présent dans le système

@@ -14,11 +14,11 @@ EnsembleIds convertirNomsEnIds(const std::vector<std::string>& noms, const Syste
     ids.reserve(noms.size());  // Allocation préventive pour éviter les réallocations multiples
     for (const auto& nom : noms) {
         if (sa.argumentExiste(nom)) {
-            ids.push_back(sa.getId(nom));  // Conversion O(1) via la Hash Map du système
+            ids.push_back(sa.getId(nom));  // Conversion O(1) via la hash map du système
         }
     }
-    // Tri crucial permettant d'utiliser la recherche binaire via std::binary_search
-    // et garantit l'unicité des représentations d'ensembles.
+    // Tri permettant d'utiliser la recherche binaire via std::binary_search
+    // et garantit l'unicité des représentations d'ensembles
     std::sort(ids.begin(), ids.end());
     return ids;
 }
@@ -35,10 +35,10 @@ std::vector<std::string> convertirIdsEnNoms(const EnsembleIds& ids, const System
 
 // Vérifie si un ensemble d'arguments est sans conflit
 bool estSansConflit(const EnsembleIds& S, const SystemeArgumentation& sa) {
-    // Double boucle imbriquée pour tester toutes les paires possibles de complexité : O(|S|²) appels à attaqueExiste
+    // Double boucle imbriquée pour tester toutes les paires possibles
     for (size_t i = 0; i < S.size(); ++i) {
         for (size_t j = 0; j < S.size(); ++j) {
-            // On teste si l'élément i attaque l'élément j.
+            // On teste si l'élément i attaque l'élément j
             if (sa.attaqueExiste(S[i], S[j])) {
                 return false;  // Dès qu'une attaque interne est trouvée, l'ensemble est invalide
             }
@@ -81,14 +81,12 @@ bool estAdmissible(const EnsembleIds& S, const SystemeArgumentation& sa) {
 bool attaqueToutExterieur(const EnsembleIds& S, const SystemeArgumentation& sa) {
     size_t nbArgs = sa.getNbArguments();
 
-    // Optimisation : Création d'un masque booléen pour tester l'appartenance à S en O(1)
-    // C'est beaucoup plus rapide que de faire des recherches linéaires répétées dans S.
-    std::vector<bool> estDansS(nbArgs, false);
+    std::vector<bool> estDansS(nbArgs, false);  // Masque booléen pour tester l'appartenance à S en O(1)
     for (int id : S) estDansS[id] = true;
 
     // Parcours de tous les arguments de l'univers
     for (size_t a = 0; a < nbArgs; ++a) {
-        // On ne s'intéresse qu'aux arguments EXTERIEURS à S (A \ S)
+        // On ne s'intéresse qu'aux arguments exterieurs à S (càd A\S)
         if (!estDansS[a]) {
             bool estAttaque = false;
             // On regarde les parents de a (ceux qui l'attaquent)
@@ -113,8 +111,7 @@ EnsembleIds fonctionCaracteristique(const EnsembleIds& S, const SystemeArgumenta
     EnsembleIds result;
     size_t nbArgs = sa.getNbArguments();
 
-    // Approche naïve, mais robuste : on teste la défense pour chaque argument de l'univers
-    // Pourrait être optimisée en ne testant que les arguments attaqués par des arguments attaqués par S
+    // Teste la défense pour chaque argument de l'univers
     for (size_t a = 0; a < nbArgs; ++a) {
         if (defend(S, static_cast<int>(a), sa)) {
             result.push_back(static_cast<int>(a));
@@ -123,13 +120,13 @@ EnsembleIds fonctionCaracteristique(const EnsembleIds& S, const SystemeArgumenta
     return result;
 }
 
-// Formate l'ensemble pour l'affichage (pour débug).
+// Génère une représentation d'un ensemble d'identifiants
 std::string afficher(const EnsembleIds& S, const SystemeArgumentation& sa) {
     if (S.empty()) return "{}";
     std::stringstream ss;
     ss << "{";
     for (size_t i = 0; i < S.size(); ++i) {
-        ss << sa.getNom(S[i]);  // Retraduction ID -> Nom
+        ss << sa.getNom(S[i]);  // Retraduction identifiant vers nom
         if (i < S.size() - 1) ss << ", ";
     }
     ss << "}";

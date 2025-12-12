@@ -11,10 +11,10 @@ Solveur::Solveur(const SystemeArgumentation& sa) : systeme_(sa) {}
 
 // Vérifie si l'ensemble d'arguments est une extension préférée
 bool Solveur::verifierExtensionPreferee(const std::vector<std::string>& ensembleNoms) const {
-    // Conversion des noms en IDs internes
+    // Conversion des noms en identifiants internes
     Utilitaires::EnsembleIds ids = Utilitaires::convertirNomsEnIds(ensembleNoms, systeme_);
-    // Si la taille diffère, c'est qu'un argument demandé n'existe pas dans le graphe.
-    // Un ensemble contenant un argument inconnu ne peut pas être une extension valide.
+    // Si la taille diffère, c'est qu'un argument demandé n'existe pas dans le graphe
+    // Un ensemble contenant un argument inconnu ne peut pas être une extension valide
     if (ids.size() != ensembleNoms.size()) return false;
     return Semantiques::verifierPreferee(ids, systeme_);  // Appel du moteur
 }
@@ -26,7 +26,7 @@ bool Solveur::verifierExtensionStable(const std::vector<std::string>& ensembleNo
     return Semantiques::verifierStable(ids, systeme_);  // Appel du moteur
 }
 
-    // Détermine si l'argument donné appartient à au moins une extension préférée
+// Détermine si l'argument donné appartient à au moins une extension préférée
 bool Solveur::acceptationCredulePreferee(const std::string& arg) const {
     // L'argument doit exister dans le graphe
     if (!systeme_.argumentExiste(arg)) return false;

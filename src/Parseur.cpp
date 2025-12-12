@@ -1,13 +1,13 @@
 /* Parseur.hpp
-* Module responsable de l'analyse syntaxique des fichiers .apx pour construire le système d'argumentation. */
+ * Module responsable de l'analyse syntaxique des fichiers .apx pour construire le système d'argumentation. */
 
 #include "Parseur.hpp"
-#include <fstream>  // std::ifstream (lecture de fichiers)
-#include <sstream>  // std::stringstream (parsing de strings)
+#include <fstream>  // std::ifstream
+#include <sstream>  // std::stringstream
 #include <algorithm>  // std::remove_if, std::all_of
 
 
-// Fonction principale : lecture ligne par ligne et du remplissage du système.
+// Fonction principale : lecture ligne par ligne et du remplissage du système
 SystemeArgumentation Parseur::parserFichier(const std::string& cheminFichier) {
     std::ifstream fichier(cheminFichier); // Ouverture du flux en lecture
     if (!fichier.is_open()) {
@@ -28,12 +28,12 @@ SystemeArgumentation Parseur::parserFichier(const std::string& cheminFichier) {
         }
 
         try {
-            if (ligne.substr(0, 4) == "arg(") {  // Vérifier si la ligne commence par "arg("
+            if (ligne.substr(0, 4) == "arg(") {  // Vérifier si la ligne commence par arg(
                 std::string nomArg = parserLigneArgument(ligne);
                 (void)systeme.ajouterArgument(nomArg);  // Ajouter l'argument au système (retour booléen est ignoré)
 
             }
-            else if (ligne.substr(0, 4) == "att(") {  // Vérifier si la ligne commence par "att("
+            else if (ligne.substr(0, 4) == "att(") {  // Vérifier si la ligne commence par att(
                 auto [source, cible] = parserLigneAttaque(ligne);
                 bool ajoutReussi = systeme.ajouterAttaque(source, cible);  // Ajouter l'attaque au système
                 if (!ajoutReussi) {  // Si l'ajout échoue, c'est qu'un argument n'existe pas
@@ -61,7 +61,7 @@ SystemeArgumentation Parseur::parserFichier(const std::string& cheminFichier) {
     return systeme;
 }
 
-// Analyse une ligne déclarant un argument ("arg(x).") et extrait le nom "x"
+// Analyse une ligne déclarant un argument via arg(x). et extrait le nom x
 std::string Parseur::parserLigneArgument(const std::string& ligne) {
     // Vérifications sur la structure attendue
     if (ligne.length() < 7) throw ErreurParsing("Ligne trop courte : " + ligne);
@@ -76,9 +76,9 @@ std::string Parseur::parserLigneArgument(const std::string& ligne) {
     return nom;
 }
 
-// Analyse une ligne déclarant une attaque ("att(x,y).") et extrait la paire {"x", "y"}
+// Analyse une ligne déclarant une attaque att(x,y). et extrait la paire {x, y}
 std::pair<std::string, std::string> Parseur::parserLigneAttaque(const std::string& ligne) {
-    // Même logique que pour parserLigneArgument() ci-dessus
+    // Même logique que ci-dessus
     if (ligne.length() < 9) throw ErreurParsing("Ligne trop courte : " + ligne);
     if (ligne.substr(0, 4) != "att(") throw ErreurParsing("Doit commencer par 'att('");
     if (ligne.substr(ligne.length() - 2) != ").") throw ErreurParsing("Doit finir par ').'");
@@ -97,10 +97,10 @@ std::pair<std::string, std::string> Parseur::parserLigneAttaque(const std::strin
     return {source, cible};
 }
 
-// Vérifie si un nom d'argument est valide (lettres, chiffres, underscore, pas "arg" ni "att")
+// Vérifie si un nom d'argument est valide (lettres, chiffres, underscore, pas arg ni att)
 bool Parseur::estNomValide(const std::string& nom) {
     if (nom.empty()) return false;
-    if (nom == "arg" || nom == "att") return false;  // Mots réservés par le format APX
+    if (nom == "arg" || nom == "att") return false;  // Mots réservés
 
     // std::all_of retourne true si le prédicat (lambda) est vrai pour tout caractère
     return std::all_of(nom.begin(), nom.end(), [](char c) {
@@ -108,7 +108,7 @@ bool Parseur::estNomValide(const std::string& nom) {
     });
 }
 
-// Supprime les espaces en début et fin de chaîne (trim)
+// Supprime les espaces en début et fin de chaîne
 std::string Parseur::trim(const std::string& str) {
     if (str.empty()) return str;
 

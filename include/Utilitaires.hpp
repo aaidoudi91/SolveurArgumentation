@@ -27,12 +27,11 @@ namespace Utilitaires {
     // Vérifie si un ensemble attaque tous les arguments qui ne lui appartiennent pas
     bool attaqueToutExterieur(const EnsembleIds& S, const SystemeArgumentation& sa);
 
-    // Calcule la fonction caractéristique F(S) : retourne l'ensemble de tous les arguments défendus par S
+    // Fonction caractéristique F(S) : retourne l'ensemble de tous les arguments défendus par S
     EnsembleIds fonctionCaracteristique(const EnsembleIds& S, const SystemeArgumentation& sa);
 
-    // Génère une représentation textuelle d'un ensemble d'IDs (ex: "{a, b, c}") pour le débogage.
+    // Génère une représentation textuelle d'un ensemble d'identifiants (exemple : "{a, b, c}")
     std::string afficher(const EnsembleIds& S, const SystemeArgumentation& sa);
-
 }
 
 #endif // UTILITAIRES_HPP
