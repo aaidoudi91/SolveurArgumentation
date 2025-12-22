@@ -17,8 +17,8 @@ Les problèmes traités sont :
 ```
 SolveurArgumentation/   
 │
-├── Makefile                      # Script de compilation (gère les dépendances et l'édition de liens)
-├── solveur                       # Exécutable final (généré après compilation)
+├── Makefile                      # Script de compilation 
+├── solveur                       # Exécutable final 
 │
 ├── README.md                     # Documentation
 │
@@ -30,7 +30,7 @@ SolveurArgumentation/
 │   └── Solveur.hpp               # Interface d'adaptation (String <-> Int)
 │
 ├── src/                          # Fichiers sources (.cpp)
-│   ├── main.cpp                  # Point d'entrée (CLI)
+│   ├── main.cpp                  # Point d'entrée 
 │   ├── SystemeArgumentation.cpp
 │   ├── Parseur.cpp
 │   ├── Utilitaires.cpp
