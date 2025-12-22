@@ -85,7 +85,7 @@ Après compilation, le programme s'exécute en ligne de commande et respecte le 
 
 ### Exemple
 
-Vérifier si {a, c, d} est une extension préférée du système défini dans `test_af1.apx` :
+Vérifier si {a, c, d} est une extension préférée du système défini dans `test_af5.apx` :
 ```bash
 ./solveur -p VE-PR -f tests/cas_test/test_af1.apx -a a,c,d
 ```
